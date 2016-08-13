@@ -19,6 +19,7 @@ namespace EventStore.Core.Tests.Services.Storage.Transactions
     [TestFixture]
     public class when_rebuilding_index_for_partially_persisted_transaction : ReadIndexTestScenario
     {
+        protected int ptableVersion = 1;
         public when_rebuilding_index_for_partially_persisted_transaction(): base(maxEntriesInMemTable: 10)
         {
         }
@@ -35,6 +36,7 @@ namespace EventStore.Core.Tests.Services.Storage.Transactions
             TableIndex = new TableIndex(GetFilePathFor("index"),
                                         () => new HashListMemTable(maxSize: MaxEntriesInMemTable*2),
                                         () => new TFReaderLease(readers),
+                                        ptableVersion,
                                         maxSizeForMemory: MaxEntriesInMemTable);
             ReadIndex = new ReadIndex(new NoopPublisher(),
                                       readers,

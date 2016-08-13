@@ -30,6 +30,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging.Helpers
         private DbResult _dbResult;
         private LogRecord[][] _keptRecords;
         private bool _checked;
+        protected int ptableVersion = 1;
 
         protected virtual bool UnsafeIgnoreHardDelete() {
             return false;
@@ -67,6 +68,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging.Helpers
             var tableIndex = new TableIndex(indexPath,
                                             () => new HashListMemTable(maxSize: 200),
                                             () => new TFReaderLease(readerPool),
+                                            ptableVersion,
                                             maxSizeForMemory: 100,
                                             maxTablesPerLevel: 2);
             var hasher = new XXHashUnsafe();

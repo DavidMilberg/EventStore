@@ -11,12 +11,12 @@ namespace EventStore.Core.Index
 {
     public unsafe partial class PTable
     {
-        public static PTable FromFile(string filename, int cacheDepth)
+        public static PTable FromFile(string filename, int version, int cacheDepth)
         {
-            return new PTable(filename, Guid.NewGuid(), depth: cacheDepth);
+            return new PTable(filename, Guid.NewGuid(), version, depth: cacheDepth);
         }
 
-        public static PTable FromMemtable(IMemTable table, string filename, int cacheDepth = 16)
+        public static PTable FromMemtable(IMemTable table, string filename, int version, int cacheDepth = 16)
         {
             Ensure.NotNull(table, "table");
             Ensure.NotNullOrEmpty(filename, "filename");
@@ -35,7 +35,7 @@ namespace EventStore.Core.Index
                 using (var bs = new BufferedStream(cs, DefaultSequentialBufferSize))
                 {
                     // WRITE HEADER
-                    var headerBytes = new PTableHeader(Version).AsByteArray();
+                    var headerBytes = new PTableHeader((byte)version).AsByteArray();
                     cs.Write(headerBytes, 0, headerBytes.Length);
 
                     // WRITE INDEX ENTRIES
@@ -54,10 +54,10 @@ namespace EventStore.Core.Index
                 }
             }
             Log.Trace("Dumped MemTable [{0}, {1} entries] in {2}.", table.Id, table.Count, sw.Elapsed);
-            return new PTable(filename, table.Id, depth: cacheDepth);
+            return new PTable(filename, table.Id, version, depth: cacheDepth);
         }
 
-        public static PTable MergeTo(IList<PTable> tables, string outputFile, Func<IndexEntry, bool> recordExistsAt, int cacheDepth = 16)
+        public static PTable MergeTo(IList<PTable> tables, string outputFile, Func<IndexEntry, bool> recordExistsAt, int version, int cacheDepth = 16)
         {
             Ensure.NotNull(tables, "tables");
             Ensure.NotNullOrEmpty(outputFile, "outputFile");
@@ -65,7 +65,7 @@ namespace EventStore.Core.Index
 
             var fileSize = GetFileSize(tables); // approximate file size
             if (tables.Count == 2)
-                return MergeTo2(tables, fileSize, outputFile, recordExistsAt, cacheDepth); // special case
+                return MergeTo2(tables, fileSize, outputFile, recordExistsAt, version, cacheDepth); // special case
 
             Log.Trace("PTables merge started.");
             var watch = Stopwatch.StartNew();
@@ -93,7 +93,7 @@ namespace EventStore.Core.Index
                 using (var bs = new BufferedStream(cs, DefaultSequentialBufferSize))
                 {
                     // WRITE HEADER
-                    var headerBytes = new PTableHeader(Version).AsByteArray();
+                    var headerBytes = new PTableHeader((byte)version).AsByteArray();
                     cs.Write(headerBytes, 0, headerBytes.Length);
 
                     var buffer = new byte[IndexEntrySize];
@@ -127,11 +127,11 @@ namespace EventStore.Core.Index
             }
             Log.Trace("PTables merge finished in {0} ([{1}] entries merged into {2}).",
                       watch.Elapsed, string.Join(", ", tables.Select(x => x.Count)), dumpedEntryCount);
-            return new PTable(outputFile, Guid.NewGuid(), depth: cacheDepth);
+            return new PTable(outputFile, Guid.NewGuid(), version, depth: cacheDepth);
         }
 
         private static PTable MergeTo2(IList<PTable> tables, long fileSize, string outputFile,
-                                       Func<IndexEntry, bool> recordExistsAt, int cacheDepth)
+                                       Func<IndexEntry, bool> recordExistsAt, int version, int cacheDepth)
         {
             Log.Trace("PTables merge started (specialized for <= 2 tables).");
             var watch = Stopwatch.StartNew();
@@ -149,7 +149,7 @@ namespace EventStore.Core.Index
                 using (var bs = new BufferedStream(cs, DefaultSequentialBufferSize))
                 {
                     // WRITE HEADER
-                    var headerBytes = new PTableHeader(Version).AsByteArray();
+                    var headerBytes = new PTableHeader((byte)version).AsByteArray();
                     cs.Write(headerBytes, 0, headerBytes.Length);
 
                     // WRITE INDEX ENTRIES
@@ -191,7 +191,7 @@ namespace EventStore.Core.Index
             }
             Log.Trace("PTables merge finished in {0} ([{1}] entries merged into {2}).",
                       watch.Elapsed, string.Join(", ", tables.Select(x => x.Count)), dumpedEntryCount);
-            return new PTable(outputFile, Guid.NewGuid(), depth: cacheDepth);
+            return new PTable(outputFile, Guid.NewGuid(), version, depth: cacheDepth);
         }
 
         private static long GetFileSize(IList<PTable> tables)

@@ -165,9 +165,12 @@ namespace EventStore.Core
             var readerPool = new ObjectPool<ITransactionFileReader>(
                 "ReadIndex readers pool", ESConsts.PTableInitialReaderCount, ESConsts.PTableMaxReaderCount,
                 () => new TFChunkReader(db, db.Config.WriterCheckpoint));
+            //TODO: PG - Switch PTable Version
+            var ptableVersion = 1;
             var tableIndex = new TableIndex(indexPath,
                                             () => new HashListMemTable(maxSize: vNodeSettings.MaxMemtableEntryCount * 2),
                                             () => new TFReaderLease(readerPool),
+                                            ptableVersion,
                                             maxSizeForMemory: vNodeSettings.MaxMemtableEntryCount,
                                             maxTablesPerLevel: 2,
                                             inMem: db.Config.InMemDb,

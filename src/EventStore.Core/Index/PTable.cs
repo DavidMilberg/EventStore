@@ -26,7 +26,6 @@ namespace EventStore.Core.Index
     {
         public const int IndexEntrySize = sizeof(int) + sizeof(int) + sizeof(long);
         public const int MD5Size = 16;
-        public const byte Version = 1;
         public const int DefaultBufferSize = 8192;
         public const int DefaultSequentialBufferSize = 65536;
 
@@ -35,6 +34,7 @@ namespace EventStore.Core.Index
         public Guid Id { get { return _id; } }
         public long Count { get { return _count; } }
         public string Filename { get { return _filename; } }
+        public byte Version { get { return _version; } }
 
         private readonly Guid _id;
         private readonly string _filename;
@@ -43,6 +43,7 @@ namespace EventStore.Core.Index
         private readonly Midpoint[] _midpoints;
         private readonly ulong _minEntry, _maxEntry;
         private readonly ObjectPool<WorkItem> _workItems;
+        private readonly byte _version;
 
         private readonly ManualResetEventSlim _destroyEvent = new ManualResetEventSlim(false);
         private volatile bool _deleteFile;
@@ -51,6 +52,7 @@ namespace EventStore.Core.Index
 
         private PTable(string filename,
                        Guid id,
+                       int version,
                        int initialReaders = ESConsts.PTableInitialReaderCount,
                        int maxReaders = ESConsts.PTableMaxReaderCount,
                        int depth = 16)
@@ -65,6 +67,7 @@ namespace EventStore.Core.Index
 
             _id = id;
             _filename = filename;
+            _version = (byte)version;
 
             Log.Trace("Loading and Verification of PTable '{0}' started...", Path.GetFileName(Filename));
             var sw = Stopwatch.StartNew();
