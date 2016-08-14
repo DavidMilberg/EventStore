@@ -9,7 +9,7 @@ namespace EventStore.Core.Tests.Index._32Bit
     [TestFixture]
     public class when_creating_ptable_from_memtable: SpecificationWithFile
     {
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
         [Test]
         public void null_file_throws_null_exception()
         {

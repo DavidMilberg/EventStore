@@ -6,6 +6,6 @@ namespace EventStore.Core.Index
     {
         bool MarkForConversion();
         void Add(uint stream, int version, long position);
-        void AddEntries(IList<IndexEntry> entries);
+        void AddEntries(IList<IndexEntry32> entries);
     }
 }

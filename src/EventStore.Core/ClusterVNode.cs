@@ -166,7 +166,7 @@ namespace EventStore.Core
                 "ReadIndex readers pool", ESConsts.PTableInitialReaderCount, ESConsts.PTableMaxReaderCount,
                 () => new TFChunkReader(db, db.Config.WriterCheckpoint));
             //TODO: PG - Switch PTable Version
-            var ptableVersion = 1;
+            var ptableVersion = PTableVersions.Index32Bit;
             var tableIndex = new TableIndex(indexPath,
                                             () => new HashListMemTable(maxSize: vNodeSettings.MaxMemtableEntryCount * 2),
                                             () => new TFReaderLease(readerPool),

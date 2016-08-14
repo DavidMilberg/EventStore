@@ -1,3 +1,4 @@
+using EventStore.Core.Index;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Index._64Bit
@@ -7,7 +8,7 @@ namespace EventStore.Core.Tests.Index._64Bit
     {
         public searching_ptable_with_usual_items_and_all_items_in_cache()
         {
-            ptableVersion = 2;
+            ptableVersion = PTableVersions.Index64Bit;
         }
     }
 
@@ -16,7 +17,7 @@ namespace EventStore.Core.Tests.Index._64Bit
     {
         public searching_ptable_with_usual_items_and_only_some_items_in_cache()
         {
-            ptableVersion = 2;
+            ptableVersion = PTableVersions.Index64Bit;
         }
     }
 }

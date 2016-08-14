@@ -11,7 +11,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         private readonly List<string> _files = new List<string>();
         private readonly List<PTable> _tables = new List<PTable>();
         private PTable _newtable;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         [TestFixtureSetUp]
         public override void TestFixtureSetUp()
@@ -53,7 +53,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void the_items_are_sorted()
         {
-            var last = new IndexEntry(ulong.MaxValue, long.MaxValue);
+            var last = new IndexEntry32(ulong.MaxValue, long.MaxValue);
             foreach(var item in _newtable.IterateAllInOrder())
             {
                 Assert.IsTrue(last.Key > item.Key || last.Key == item.Key && last.Position > item.Position);

@@ -1,3 +1,4 @@
+using EventStore.Core.Index;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Index._64Bit
@@ -7,7 +8,7 @@ namespace EventStore.Core.Tests.Index._64Bit
     {
         public saving_index_with_six_items_to_a_file()
         {
-            ptableVersion = 2;
+            ptableVersion = PTableVersions.Index64Bit;
         }
     }
 }

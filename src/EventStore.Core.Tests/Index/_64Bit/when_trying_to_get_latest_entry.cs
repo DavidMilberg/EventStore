@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using EventStore.Core.Index;
+using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Index._64Bit
 {
@@ -7,7 +8,7 @@ namespace EventStore.Core.Tests.Index._64Bit
     {
         public when_trying_to_get_latest_entry()
         {
-            ptableVersion = 2;
+            ptableVersion = PTableVersions.Index64Bit;
         }
     }
 }

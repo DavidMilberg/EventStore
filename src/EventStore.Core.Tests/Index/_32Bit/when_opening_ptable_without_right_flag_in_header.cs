@@ -8,7 +8,7 @@ namespace EventStore.Core.Tests.Index._32Bit
     [TestFixture]
     public class when_opening_ptable_without_right_flag_in_header: SpecificationWithFile
     {
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
         [SetUp]
         public override void SetUp()
         {

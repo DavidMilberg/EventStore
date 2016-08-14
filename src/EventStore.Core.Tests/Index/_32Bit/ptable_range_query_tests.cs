@@ -7,7 +7,7 @@ namespace EventStore.Core.Tests.Index._32Bit
     [TestFixture]
     public class ptable_range_query_tests: SpecificationWithFilePerTestFixture
     {
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
         private PTable _ptable;
 
         public override void TestFixtureSetUp()

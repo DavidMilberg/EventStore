@@ -12,7 +12,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         private IndexMap _map;
         private string _finalmergefile;
         private string _finalmergefile2;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         private MergeResult _result;
 

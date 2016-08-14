@@ -12,7 +12,7 @@ namespace EventStore.Core.Tests.Index._32Bit
     {
         private string _filename;
         private IndexMap _map;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         [TestFixtureSetUp]
         public override void TestFixtureSetUp()

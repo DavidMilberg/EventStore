@@ -153,7 +153,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 
             string streamId = null;
             uint streamHash = 0;
-            var indexEntries = new List<IndexEntry>();
+            var indexEntries = new List<IndexEntry32>();
             var prepares = new List<PrepareLogRecord>();
 
             foreach (var prepare in GetTransactionPrepares(commit.TransactionPosition, commit.LogPosition))
@@ -177,7 +177,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 
                 if (new TFPos(commit.LogPosition, prepare.LogPosition) > new TFPos(_persistedCommitPos, _persistedPreparePos))
                 {
-                    indexEntries.Add(new IndexEntry(streamHash, eventNumber, prepare.LogPosition));
+                    indexEntries.Add(new IndexEntry32(streamHash, eventNumber, prepare.LogPosition));
                     prepares.Add(prepare);
                 }
             }
@@ -232,7 +232,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 
             string streamId = lastPrepare.EventStreamId;
             uint streamHash = _hasher.Hash(streamId);
-            var indexEntries = new List<IndexEntry>();
+            var indexEntries = new List<IndexEntry32>();
             var prepares = new List<PrepareLogRecord>();
 
             foreach (var prepare in commitedPrepares)
@@ -273,7 +273,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 
                 if (new TFPos(prepare.LogPosition, prepare.LogPosition) > new TFPos(_persistedCommitPos, _persistedPreparePos))
                 {
-                    indexEntries.Add(new IndexEntry(streamHash, eventNumber, prepare.LogPosition));
+                    indexEntries.Add(new IndexEntry32(streamHash, eventNumber, prepare.LogPosition));
                     prepares.Add(prepare);
                 }
             }
@@ -357,7 +357,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             }
         }
 
-        private void CheckDuplicateEvents(uint streamHash, CommitLogRecord commit, IList<IndexEntry> indexEntries, IList<PrepareLogRecord> prepares)
+        private void CheckDuplicateEvents(uint streamHash, CommitLogRecord commit, IList<IndexEntry32> indexEntries, IList<PrepareLogRecord> prepares)
         {
             using (var reader = _backend.BorrowReader())
             {

@@ -15,7 +15,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         private string _mergeFile;
         private IndexMap _map;
         private MergeResult _result;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         [SetUp]
         public override void SetUp()

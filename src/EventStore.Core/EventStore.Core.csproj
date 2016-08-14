@@ -15,7 +15,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>..\..\bin\intermediate\</OutputPath>
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -148,7 +148,8 @@
     <Compile Include="Index\Hashes\XXHashUnsafe.cs" />
     <Compile Include="Index\IIndexFilenameProvider.cs" />
     <Compile Include="Index\IMemTable.cs" />
-    <Compile Include="Index\IndexEntry.cs" />
+    <Compile Include="Index\IndexEntry32.cs" />
+    <Compile Include="Index\IndexEntry64.cs" />
     <Compile Include="Index\IndexMap.cs" />
     <Compile Include="Index\ISearchTable.cs" />
     <Compile Include="Index\ITableIndex.cs" />

@@ -1,3 +1,4 @@
+using EventStore.Core.Index;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Index._64Bit
@@ -7,7 +8,7 @@ namespace EventStore.Core.Tests.Index._64Bit
     {
         public adding_four_items_to_empty_index_map_with_four_tables_per_level_causes_merge()
         {
-            ptableVersion = 2;
+            ptableVersion = PTableVersions.Index64Bit;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using EventStore.Core.Index;
+using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Index._64Bit
 {
@@ -7,7 +8,7 @@ namespace EventStore.Core.Tests.Index._64Bit
     {
         public index_map_should_detect_corruption()
         {
-            ptableVersion = 2;
+            ptableVersion = PTableVersions.Index64Bit;
         }
     }
 }

@@ -12,7 +12,7 @@ namespace EventStore.Core.Tests.Index._64Bit
     {
         public saving_index_with_single_item_to_a_file()
         {
-            ptableVersion = 2;
+            ptableVersion = PTableVersions.Index64Bit;
         }
     }
 }

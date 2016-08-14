@@ -11,12 +11,12 @@ namespace EventStore.Core.Index
         void Close(bool removeFiles = true);
 
         void Add(long commitPos, uint stream, int version, long position);
-        void AddEntries(long commitPos, IList<IndexEntry> entries);
+        void AddEntries(long commitPos, IList<IndexEntry32> entries);
         
         bool TryGetOneValue(uint stream, int version, out long position);
-        bool TryGetLatestEntry(uint stream, out IndexEntry entry);
-        bool TryGetOldestEntry(uint stream, out IndexEntry entry);
+        bool TryGetLatestEntry(uint stream, out IndexEntry32 entry);
+        bool TryGetOldestEntry(uint stream, out IndexEntry32 entry);
 
-        IEnumerable<IndexEntry> GetRange(uint stream, int startVersion, int endVersion, int? limit = null);
+        IEnumerable<IndexEntry32> GetRange(uint stream, int startVersion, int endVersion, int? limit = null);
     }
 }

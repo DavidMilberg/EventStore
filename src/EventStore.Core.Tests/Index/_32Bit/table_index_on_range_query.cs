@@ -9,7 +9,7 @@ namespace EventStore.Core.Tests.Index._32Bit
     public class table_index_on_range_query  :SpecificationWithDirectoryPerTestFixture
     {
         private TableIndex _tableIndex;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         [TestFixtureSetUp]
         public override void TestFixtureSetUp()

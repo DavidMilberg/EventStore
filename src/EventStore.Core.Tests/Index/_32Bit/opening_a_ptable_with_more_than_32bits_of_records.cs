@@ -11,7 +11,6 @@ namespace EventStore.Core.Tests.Index._32Bit
     [TestFixture, Explicit]
     public class opening_a_ptable_with_more_than_32bits_of_records: SpecificationWithFilePerTestFixture
     {
-        public const int IndexEntrySize = sizeof(int) + sizeof(int) + sizeof(long);
         public const int MD5Size = 16;
         public const byte Version = 1;
         public const int DefaultSequentialBufferSize = 65536;
@@ -20,19 +19,20 @@ namespace EventStore.Core.Tests.Index._32Bit
         private long _size;
         private long _ptableCount;
 
-        protected int ptableVersion = 1;
+        protected int indexEntrySize = PTable.IndexEntry32Size;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         public override void TestFixtureSetUp()
         {
             base.TestFixtureSetUp();
             _ptableCount = (long)(uint.MaxValue + 10000000L);
-            _size = _ptableCount * (long) PTable.IndexEntrySize + PTableHeader.Size + PTable.MD5Size;
+            _size = _ptableCount * (long)indexEntrySize + PTableHeader.Size + PTable.MD5Size;
             Console.WriteLine("Creating PTable at {0}. Size of PTable: {1}", Filename, _size);
-            CreatePTableFile(Filename, _size);
+            CreatePTableFile(Filename, _size, indexEntrySize);
             _ptable = PTable.FromFile(Filename, ptableVersion, 22);
         }
 
-        public static void CreatePTableFile(string filename, long ptableSize, int cacheDepth = 16)
+        public static void CreatePTableFile(string filename, long ptableSize, int ptableIndexEntrySize, int cacheDepth = 16)
         {
             Ensure.NotNullOrEmpty(filename, "filename");
             Ensure.Nonnegative(cacheDepth, "cacheDepth");
@@ -45,7 +45,7 @@ namespace EventStore.Core.Tests.Index._32Bit
                 fs.SetLength((long)ptableSize);
                 fs.Seek(0, SeekOrigin.Begin);
 
-                var recordCount = (long)((ptableSize - PTableHeader.Size - PTable.MD5Size) / (long)PTable.IndexEntrySize);
+                var recordCount = (long)((ptableSize - PTableHeader.Size - PTable.MD5Size) / (long)ptableIndexEntrySize);
                 using (var md5 = MD5.Create())
                 using (var cs = new CryptoStream(fs, md5, CryptoStreamMode.Write))
                 using (var bs = new BufferedStream(cs, DefaultSequentialBufferSize))
@@ -55,10 +55,10 @@ namespace EventStore.Core.Tests.Index._32Bit
                     cs.Write(headerBytes, 0, headerBytes.Length);
 
                     // WRITE INDEX ENTRIES
-                    var buffer = new byte[IndexEntrySize];
+                    var buffer = new byte[ptableIndexEntrySize];
                     for (long i = 0; i < recordCount; i++)
                     {
-                        bs.Write(buffer, 0, IndexEntrySize);
+                        bs.Write(buffer, 0, ptableIndexEntrySize);
                     }
                     bs.Flush();
                     cs.FlushFinalBlock();

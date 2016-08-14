@@ -4,27 +4,27 @@ using System.Runtime.InteropServices;
 namespace EventStore.Core.Index
 {
     [StructLayout(LayoutKind.Explicit)]
-    public unsafe struct IndexEntry: IComparable<IndexEntry>, IEquatable<IndexEntry>
+    public unsafe struct IndexEntry64: IComparable<IndexEntry64>, IEquatable<IndexEntry64>
     {
         [FieldOffset(0)] public UInt64 Key;
-        [FieldOffset(0)] public fixed byte Bytes [16];
+        [FieldOffset(0)] public fixed byte Bytes [20];
         [FieldOffset(0)] public Int32 Version;
-        [FieldOffset(4)] public UInt32 Stream;
-        [FieldOffset(8)] public Int64 Position;
-        public IndexEntry(ulong key, long position) : this()
+        [FieldOffset(4)] public UInt64 Stream;
+        [FieldOffset(12)] public Int64 Position;
+        public IndexEntry64(ulong key, long position) : this()
         {
             Key = key;
             Position = position;
         }
 
-        public IndexEntry(uint stream, int version, long position) : this()
+        public IndexEntry64(ulong stream, int version, long position) : this()
         {
             Stream = stream;
             Version = version;
             Position = position;
         }
 
-        public int CompareTo(IndexEntry other)
+        public int CompareTo(IndexEntry64 other)
         {
             var keyCmp = Key.CompareTo(other.Key);
             if (keyCmp != 0)
@@ -32,7 +32,7 @@ namespace EventStore.Core.Index
             return Position.CompareTo(other.Position);
         }
 
-        public bool Equals(IndexEntry other)
+        public bool Equals(IndexEntry64 other)
         {
             return Key == other.Key && Position == other.Position;
         }

@@ -16,7 +16,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         private string _ptableFileName;
         private IndexMap _emptyIndexMap;
         private PTable _ptable;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         [SetUp]
         public override void SetUp()

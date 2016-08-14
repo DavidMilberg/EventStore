@@ -30,7 +30,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging.Helpers
         private DbResult _dbResult;
         private LogRecord[][] _keptRecords;
         private bool _checked;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         protected virtual bool UnsafeIgnoreHardDelete() {
             return false;

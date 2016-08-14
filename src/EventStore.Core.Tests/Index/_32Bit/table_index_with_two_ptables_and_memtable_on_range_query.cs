@@ -12,7 +12,7 @@ namespace EventStore.Core.Tests.Index._32Bit
     {
         private TableIndex _tableIndex;
         private string _indexDir;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         [TestFixtureSetUp]
         public override void TestFixtureSetUp()
@@ -66,21 +66,21 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void should_not_return_latest_entry_for_nonexisting_stream()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsFalse(_tableIndex.TryGetLatestEntry(0xFEED, out entry));
         }
 
         [Test]
         public void should_not_return_oldest_entry_for_nonexisting_stream()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsFalse(_tableIndex.TryGetLatestEntry(0xFEED, out entry));
         }
 
         [Test]
         public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_memtable()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(_tableIndex.TryGetLatestEntry(0xADA, out entry));
             Assert.AreEqual(0xADA, entry.Stream);
             Assert.AreEqual(0, entry.Version);
@@ -90,7 +90,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_0()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(_tableIndex.TryGetLatestEntry(0xDEAD, out entry));
             Assert.AreEqual(0xDEAD, entry.Stream);
             Assert.AreEqual(1, entry.Version);
@@ -100,7 +100,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void should_return_correct_latest_entry_for_another_stream_with_latest_entry_in_ptable_0()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(_tableIndex.TryGetLatestEntry(0xBABA, out entry));
             Assert.AreEqual(0xBABA, entry.Stream);
             Assert.AreEqual(1, entry.Version);
@@ -110,7 +110,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_1()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(_tableIndex.TryGetLatestEntry(0xCEED, out entry));
             Assert.AreEqual(0xCEED, entry.Stream);
             Assert.AreEqual(10, entry.Version);
@@ -120,7 +120,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_2()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(_tableIndex.TryGetLatestEntry(0xBEEF, out entry));
             Assert.AreEqual(0xBEEF, entry.Stream);
             Assert.AreEqual(1, entry.Version);
@@ -130,7 +130,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void should_return_correct_latest_entry_for_another_stream_with_latest_entry_in_ptable_2()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(_tableIndex.TryGetLatestEntry(0xABBA, out entry));
             Assert.AreEqual(0xABBA, entry.Stream);
             Assert.AreEqual(1, entry.Version);
@@ -140,7 +140,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void should_return_correct_oldest_entries_for_each_stream()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
 
             Assert.IsTrue(_tableIndex.TryGetOldestEntry(0xDEAD, out entry));
             Assert.AreEqual(0xDEAD, entry.Stream);
@@ -185,10 +185,10 @@ namespace EventStore.Core.Tests.Index._32Bit
         {
             var range = _tableIndex.GetRange(0xDEAD, 0, int.MaxValue).ToArray();
             Assert.AreEqual(4, range.Length);
-            Assert.AreEqual(new IndexEntry(0xDEAD, 1, 0xFF11), range[0]);
-            Assert.AreEqual(new IndexEntry(0xDEAD, 1, 0xFF01), range[1]);
-            Assert.AreEqual(new IndexEntry(0xDEAD, 0, 0xFF10), range[2]);
-            Assert.AreEqual(new IndexEntry(0xDEAD, 0, 0xFF00), range[3]);
+            Assert.AreEqual(new IndexEntry32(0xDEAD, 1, 0xFF11), range[0]);
+            Assert.AreEqual(new IndexEntry32(0xDEAD, 1, 0xFF01), range[1]);
+            Assert.AreEqual(new IndexEntry32(0xDEAD, 0, 0xFF10), range[2]);
+            Assert.AreEqual(new IndexEntry32(0xDEAD, 0, 0xFF00), range[3]);
         }
 
         [Test]
@@ -196,8 +196,8 @@ namespace EventStore.Core.Tests.Index._32Bit
         {
             var range = _tableIndex.GetRange(0xBEEF, 0, int.MaxValue).ToArray();
             Assert.AreEqual(2, range.Length);
-            Assert.AreEqual(new IndexEntry(0xBEEF, 1, 0xFF01), range[0]);
-            Assert.AreEqual(new IndexEntry(0xBEEF, 0, 0xFF00), range[1]);
+            Assert.AreEqual(new IndexEntry32(0xBEEF, 1, 0xFF01), range[0]);
+            Assert.AreEqual(new IndexEntry32(0xBEEF, 0, 0xFF00), range[1]);
         }
 
         [Test]
@@ -205,10 +205,10 @@ namespace EventStore.Core.Tests.Index._32Bit
         {
             var range = _tableIndex.GetRange(0xABBA, 0, int.MaxValue).ToArray();
             Assert.AreEqual(4, range.Length);
-            Assert.AreEqual(new IndexEntry(0xABBA, 1, 0xFF03), range[0]);
-            Assert.AreEqual(new IndexEntry(0xABBA, 1, 0xFF01), range[1]);
-            Assert.AreEqual(new IndexEntry(0xABBA, 0, 0xFF02), range[2]);
-            Assert.AreEqual(new IndexEntry(0xABBA, 0, 0xFF00), range[3]);
+            Assert.AreEqual(new IndexEntry32(0xABBA, 1, 0xFF03), range[0]);
+            Assert.AreEqual(new IndexEntry32(0xABBA, 1, 0xFF01), range[1]);
+            Assert.AreEqual(new IndexEntry32(0xABBA, 0, 0xFF02), range[2]);
+            Assert.AreEqual(new IndexEntry32(0xABBA, 0, 0xFF00), range[3]);
         }
 
         [Test]
@@ -216,8 +216,8 @@ namespace EventStore.Core.Tests.Index._32Bit
         {
             var range = _tableIndex.GetRange(0xADA, 0, int.MaxValue).ToArray();
             Assert.AreEqual(2, range.Length);
-            Assert.AreEqual(new IndexEntry(0xADA, 0, 0xFF01), range[0]);
-            Assert.AreEqual(new IndexEntry(0xADA, 0, 0xFF00), range[1]);
+            Assert.AreEqual(new IndexEntry32(0xADA, 0, 0xFF01), range[0]);
+            Assert.AreEqual(new IndexEntry32(0xADA, 0, 0xFF00), range[1]);
         }
 
         [Test]
@@ -225,7 +225,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         {
             var range = _tableIndex.GetRange(0xCEED, 0, int.MaxValue).ToArray();
             Assert.AreEqual(1, range.Length);
-            Assert.AreEqual(new IndexEntry(0xCEED, 10, 0xFFF1), range[0]);
+            Assert.AreEqual(new IndexEntry32(0xCEED, 10, 0xFFF1), range[0]);
         }
 
         [Test]
@@ -233,8 +233,8 @@ namespace EventStore.Core.Tests.Index._32Bit
         {
             var range = _tableIndex.GetRange(0xBABA, 0, int.MaxValue).ToArray();
             Assert.AreEqual(2, range.Length);
-            Assert.AreEqual(new IndexEntry(0xBABA, 1, 0xFF01), range[0]);
-            Assert.AreEqual(new IndexEntry(0xBABA, 0, 0xFF00), range[1]);
+            Assert.AreEqual(new IndexEntry32(0xBABA, 1, 0xFF01), range[0]);
+            Assert.AreEqual(new IndexEntry32(0xBABA, 0, 0xFF00), range[1]);
         }
      
         [Test]

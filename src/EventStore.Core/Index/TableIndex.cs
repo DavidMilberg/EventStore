@@ -18,7 +18,7 @@ namespace EventStore.Core.Index
         private const int MaxMemoryTables = 1;
 
         private static readonly ILogger Log = LogManager.GetLoggerFor<TableIndex>();
-        internal static readonly IndexEntry InvalidIndexEntry = new IndexEntry(0, -1, -1);
+        internal static readonly IndexEntry32 InvalidIndexEntry = new IndexEntry32(0, -1, -1);
 
         public long CommitCheckpoint { get { return Interlocked.Read(ref _commitCheckpoint); } }
         public long PrepareCheckpoint { get { return Interlocked.Read(ref _prepareCheckpoint); } }
@@ -176,10 +176,10 @@ namespace EventStore.Core.Index
             Ensure.Nonnegative(version, "version");
             Ensure.Nonnegative(position, "position");
 
-            AddEntries(commitPos, new[] { new IndexEntry(stream, version, position) });
+            AddEntries(commitPos, new[] { new IndexEntry32(stream, version, position) });
         }
 
-        public void AddEntries(long commitPos, IList<IndexEntry> entries)
+        public void AddEntries(long commitPos, IList<IndexEntry32> entries)
         {
             //Ensure.Nonnegative(commitPos, "commitPos");
             //Ensure.NotNull(entries, "entries");
@@ -257,7 +257,7 @@ namespace EventStore.Core.Index
                     using (var reader = _tfReaderFactory())
                     {
                         mergeResult = _indexMap.AddPTable(ptable, tableItem.PrepareCheckpoint, tableItem.CommitCheckpoint,
-                                                          entry => reader.ExistsAt(entry.Position), _fileNameProvider, _indexCacheDepth);
+                                                          entry => reader.ExistsAt(entry.Position), _fileNameProvider, _ptableVersion, _indexCacheDepth);
                     }
                     _indexMap = mergeResult.MergedMap;
                     _indexMap.SaveToFile(indexmapFile);
@@ -365,7 +365,7 @@ namespace EventStore.Core.Index
             return false;
         }
 
-        public bool TryGetLatestEntry(uint stream, out IndexEntry entry)
+        public bool TryGetLatestEntry(uint stream, out IndexEntry32 entry)
         {
             var counter = 0;
             while (counter < 5)
@@ -383,7 +383,7 @@ namespace EventStore.Core.Index
             throw new InvalidOperationException("Files are locked.");
         }
 
-        private bool TryGetLatestEntryInternal(uint stream, out IndexEntry entry)
+        private bool TryGetLatestEntryInternal(uint stream, out IndexEntry32 entry)
         {
             var awaiting = _awaitingMemTables;
             foreach (var t in awaiting)
@@ -403,7 +403,7 @@ namespace EventStore.Core.Index
             return false;
         }
 
-        public bool TryGetOldestEntry(uint stream, out IndexEntry entry)
+        public bool TryGetOldestEntry(uint stream, out IndexEntry32 entry)
         {
             var counter = 0;
             while (counter < 5)
@@ -421,7 +421,7 @@ namespace EventStore.Core.Index
             throw new InvalidOperationException("Files are locked.");
         }
 
-        private bool TryGetOldestEntryInternal(uint stream, out IndexEntry entry)
+        private bool TryGetOldestEntryInternal(uint stream, out IndexEntry32 entry)
         {
             var map = _indexMap;
             foreach (var table in map.InReverseOrder())
@@ -441,7 +441,7 @@ namespace EventStore.Core.Index
             return false;
         }
 
-        public IEnumerable<IndexEntry> GetRange(uint stream, int startVersion, int endVersion, int? limit = null)
+        public IEnumerable<IndexEntry32> GetRange(uint stream, int startVersion, int endVersion, int? limit = null)
         {
             var counter = 0;
             while (counter < 5)
@@ -459,14 +459,14 @@ namespace EventStore.Core.Index
             throw new InvalidOperationException("Files are locked.");
         }
 
-        private IEnumerable<IndexEntry> GetRangeInternal(uint stream, int startVersion, int endVersion, int? limit = null)
+        private IEnumerable<IndexEntry32> GetRangeInternal(uint stream, int startVersion, int endVersion, int? limit = null)
         {
             if (startVersion < 0)
                 throw new ArgumentOutOfRangeException("startVersion");
             if (endVersion < 0)
                 throw new ArgumentOutOfRangeException("endVersion");
 
-            var candidates = new List<IEnumerator<IndexEntry>>();
+            var candidates = new List<IEnumerator<IndexEntry32>>();
 
             var awaiting = _awaitingMemTables;
             for (int index = 0; index < awaiting.Count; index++)
@@ -484,7 +484,7 @@ namespace EventStore.Core.Index
                     candidates.Add(range);
             }
 
-            var last = new IndexEntry(0, 0, 0);
+            var last = new IndexEntry32(0, 0, 0);
             var first = true;
             while (candidates.Count > 0)
             {
@@ -504,9 +504,9 @@ namespace EventStore.Core.Index
             }
         }
 
-        private static int GetMaxOf(List<IEnumerator<IndexEntry>> enumerators)
+        private static int GetMaxOf(List<IEnumerator<IndexEntry32>> enumerators)
         {
-            var max = new IndexEntry(ulong.MinValue, long.MinValue);
+            var max = new IndexEntry32(ulong.MinValue, long.MinValue);
             int idx = 0;
             for (int i = 0; i < enumerators.Count; i++)
             {

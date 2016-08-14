@@ -70,7 +70,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void try_get_latest_entry_for_smallest_hash_returns_correct_index_entry()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(PTable.TryGetLatestEntry(0, out entry));
             Assert.AreEqual(0, entry.Stream);
             Assert.AreEqual(0, entry.Version);
@@ -80,7 +80,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void try_get_oldest_entry_for_smallest_hash_returns_correct_index_entry()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(PTable.TryGetOldestEntry(0, out entry));
             Assert.AreEqual(0, entry.Stream);
             Assert.AreEqual(0, entry.Version);
@@ -114,7 +114,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void try_get_latest_entry_for_largest_hash_returns_correct_index_entry()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(PTable.TryGetLatestEntry(1, out entry));
             Assert.AreEqual(1, entry.Stream);
             Assert.AreEqual(0, entry.Version);
@@ -124,7 +124,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void try_get_oldest_entry_for_largest_hash_returns_correct_index_entry()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsTrue(PTable.TryGetOldestEntry(1, out entry));
             Assert.AreEqual(1, entry.Stream);
             Assert.AreEqual(0, entry.Version);
@@ -148,14 +148,14 @@ namespace EventStore.Core.Tests.Index._32Bit
         [Test]
         public void try_get_latest_entry_returns_nothing_for_nonexistent_stream()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsFalse(PTable.TryGetLatestEntry(2, out entry));
         }
 
         [Test]
         public void try_get_oldest_entry_returns_nothing_for_nonexistent_stream()
         {
-            IndexEntry entry;
+            IndexEntry32 entry;
             Assert.IsFalse(PTable.TryGetOldestEntry(2, out entry));
         }
     }

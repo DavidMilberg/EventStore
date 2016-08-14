@@ -12,7 +12,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         private IndexMap _map;
         private string _mergeFile;
         private MergeResult _result;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
 
         [TestFixtureSetUp]
         public override void TestFixtureSetUp()

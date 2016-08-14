@@ -12,7 +12,7 @@ namespace EventStore.Core.Tests.Index._32Bit
         private string _filename;
         private PTable _table;
         private string _copiedfilename;
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
         [SetUp]
         public void Setup()
         {

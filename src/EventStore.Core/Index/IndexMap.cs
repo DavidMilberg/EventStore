@@ -14,6 +14,8 @@ namespace EventStore.Core.Index
     {
         private static readonly ILogger Log = LogManager.GetLoggerFor<IndexMap>();
 
+        public const int IndexMapVersion = 1;
+
         public readonly int Version;
 
         public readonly long PrepareCheckpoint;
@@ -101,16 +103,16 @@ namespace EventStore.Core.Index
                    select table.Filename;
         }
 
-        public static IndexMap CreateEmpty(int version, int maxTablesPerLevel = 4)
+        public static IndexMap CreateEmpty(int maxTablesPerLevel = 4)
         {
             //TODO PG the version that used to be passed in here was IndexMapVersion = 1
-            return new IndexMap(version, new List<List<PTable>>(), -1, -1, maxTablesPerLevel);
+            return new IndexMap(IndexMapVersion, new List<List<PTable>>(), -1, -1, maxTablesPerLevel);
         }
 
         public static IndexMap FromFile(string filename, int ptableVersion, int maxTablesPerLevel = 4, bool loadPTables = true, int cacheDepth = 16)
         {
             if (!File.Exists(filename))
-                return CreateEmpty(ptableVersion, maxTablesPerLevel);
+                return CreateEmpty(maxTablesPerLevel);
 
             using (var f = File.OpenRead(filename))
             {
@@ -313,7 +315,7 @@ namespace EventStore.Core.Index
         public MergeResult AddPTable(PTable tableToAdd,
                                      long prepareCheckpoint,
                                      long commitCheckpoint,
-                                     Func<IndexEntry, bool> recordExistsAt,
+                                     Func<IndexEntry32, bool> recordExistsAt,
                                      IIndexFilenameProvider filenameProvider,
                                      int version,
                                      int indexCacheDepth = 16)

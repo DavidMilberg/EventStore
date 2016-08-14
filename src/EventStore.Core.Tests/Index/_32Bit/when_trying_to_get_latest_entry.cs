@@ -6,7 +6,7 @@ namespace EventStore.Core.Tests.Index._32Bit
     [TestFixture]
     public class when_trying_to_get_latest_entry: SpecificationWithFile
     {
-        protected int ptableVersion = 1;
+        protected int ptableVersion = PTableVersions.Index32Bit;
         [Test]
         public void nothing_is_found_on_empty_stream()
         {
@@ -14,7 +14,7 @@ namespace EventStore.Core.Tests.Index._32Bit
             memTable.Add(0x11, 0x01, 0xffff);
             using (var ptable = PTable.FromMemtable(memTable, Filename, ptableVersion))
             {
-                IndexEntry entry;
+                IndexEntry32 entry;
                 Assert.IsFalse(ptable.TryGetLatestEntry(0x12, out entry));
             }
         }
@@ -26,7 +26,7 @@ namespace EventStore.Core.Tests.Index._32Bit
             memTable.Add(0x11, 0x01, 0xffff);
             using (var ptable = PTable.FromMemtable(memTable, Filename, ptableVersion))
             {
-                IndexEntry entry;
+                IndexEntry32 entry;
                 Assert.IsTrue(ptable.TryGetLatestEntry(0x11, out entry));
                 Assert.AreEqual(0x11, entry.Stream);
                 Assert.AreEqual(0x01, entry.Version);
@@ -42,7 +42,7 @@ namespace EventStore.Core.Tests.Index._32Bit
             memTable.Add(0x11, 0x02, 0xfff2);
             using (var ptable = PTable.FromMemtable(memTable, Filename, ptableVersion))
             {
-                IndexEntry entry;
+                IndexEntry32 entry;
                 Assert.IsTrue(ptable.TryGetLatestEntry(0x11, out entry));
                 Assert.AreEqual(0x11, entry.Stream);
                 Assert.AreEqual(0x02, entry.Version);
@@ -60,7 +60,7 @@ namespace EventStore.Core.Tests.Index._32Bit
             memTable.Add(0x11, 0x02, 0xfff4);
             using (var ptable = PTable.FromMemtable(memTable, Filename, ptableVersion))
             {
-                IndexEntry entry;
+                IndexEntry32 entry;
                 Assert.IsTrue(ptable.TryGetLatestEntry(0x11, out entry));
                 Assert.AreEqual(0x11, entry.Stream);
                 Assert.AreEqual(0x02, entry.Version);
@@ -77,7 +77,7 @@ namespace EventStore.Core.Tests.Index._32Bit
             memTable.Add(0x11, 0x01, 0xfff5);
             using (var ptable = PTable.FromMemtable(memTable, Filename, ptableVersion))
             {
-                IndexEntry entry;
+                IndexEntry32 entry;
                 Assert.IsTrue(ptable.TryGetLatestEntry(0x11, out entry));
                 Assert.AreEqual(0x11, entry.Stream);
                 Assert.AreEqual(0x01, entry.Version);
