@@ -167,9 +167,11 @@ namespace EventStore.Core
                 () => new TFChunkReader(db, db.Config.WriterCheckpoint));
             //TODO: PG - Switch PTable Version
             var ptableVersion = PTableVersions.Index32Bit;
+            var indexEntryFactory = new IndexEntryFactory(ptableVersion);
             var tableIndex = new TableIndex(indexPath,
-                                            () => new HashListMemTable(maxSize: vNodeSettings.MaxMemtableEntryCount * 2),
+                                            () => new HashListMemTable(indexEntryFactory, maxSize: vNodeSettings.MaxMemtableEntryCount * 2),
                                             () => new TFReaderLease(readerPool),
+                                            indexEntryFactory,
                                             ptableVersion,
                                             maxSizeForMemory: vNodeSettings.MaxMemtableEntryCount,
                                             maxTablesPerLevel: 2,

@@ -10,13 +10,13 @@ namespace EventStore.Core.Index
         void Initialize(long chaserCheckpoint);
         void Close(bool removeFiles = true);
 
-        void Add(long commitPos, uint stream, int version, long position);
-        void AddEntries(long commitPos, IList<IndexEntry32> entries);
+        void Add(long commitPos, ulong stream, int version, long position);
+        void AddEntries(long commitPos, IList<IIndexEntry> entries);
         
-        bool TryGetOneValue(uint stream, int version, out long position);
-        bool TryGetLatestEntry(uint stream, out IndexEntry32 entry);
-        bool TryGetOldestEntry(uint stream, out IndexEntry32 entry);
+        bool TryGetOneValue(ulong stream, int version, out long position);
+        bool TryGetLatestEntry(ulong stream, out IIndexEntry entry);
+        bool TryGetOldestEntry(ulong stream, out IIndexEntry entry);
 
-        IEnumerable<IndexEntry32> GetRange(uint stream, int startVersion, int endVersion, int? limit = null);
+        IEnumerable<IIndexEntry> GetRange(ulong stream, int startVersion, int endVersion, int? limit = null);
     }
 }

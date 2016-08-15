@@ -427,11 +427,11 @@ namespace EventStore.Core.TransactionLog.Chunks
                 msh = _hasher.Hash(SystemStreams.MetastreamOf(eventStreamId));
             }
 
-            IndexEntry32 e;
-            var allInChunk = _tableIndex.TryGetOldestEntry(sh, out e) && e.Position >= chunkStart && e.Position < chunkEnd
-                          && _tableIndex.TryGetLatestEntry(sh, out e) && e.Position >= chunkStart && e.Position < chunkEnd
-                          && _tableIndex.TryGetOldestEntry(msh, out e) && e.Position >= chunkStart && e.Position < chunkEnd
-                          && _tableIndex.TryGetLatestEntry(msh, out e) && e.Position >= chunkStart && e.Position < chunkEnd;
+            IIndexEntry e;
+            var allInChunk = _tableIndex.TryGetOldestEntry(sh, out e) && e.GetPosition() >= chunkStart && e.GetPosition() < chunkEnd
+                          && _tableIndex.TryGetLatestEntry(sh, out e) && e.GetPosition() >= chunkStart && e.GetPosition() < chunkEnd
+                          && _tableIndex.TryGetOldestEntry(msh, out e) && e.GetPosition() >= chunkStart && e.GetPosition() < chunkEnd
+                          && _tableIndex.TryGetLatestEntry(msh, out e) && e.GetPosition() >= chunkStart && e.GetPosition() < chunkEnd;
             return allInChunk;
         }
 

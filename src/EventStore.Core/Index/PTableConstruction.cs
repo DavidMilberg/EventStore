@@ -11,12 +11,12 @@ namespace EventStore.Core.Index
 {
     public unsafe partial class PTable
     {
-        public static PTable FromFile(string filename, int version, int cacheDepth)
+        public static PTable FromFile(string filename, int version, IndexEntryFactory indexEntryFactory, int cacheDepth)
         {
-            return new PTable(filename, Guid.NewGuid(), version, depth: cacheDepth);
+            return new PTable(filename, Guid.NewGuid(), version, indexEntryFactory, depth: cacheDepth);
         }
 
-        public static PTable FromMemtable(IMemTable table, string filename, int version, int cacheDepth = 16)
+        public static PTable FromMemtable(IMemTable table, IndexEntryFactory indexEntryFactory, string filename, int version, int cacheDepth = 16)
         {
             Ensure.NotNull(table, "table");
             Ensure.NotNullOrEmpty(filename, "filename");
@@ -27,7 +27,7 @@ namespace EventStore.Core.Index
             using (var fs = new FileStream(filename, FileMode.Create, FileAccess.ReadWrite, FileShare.None,
                                            DefaultSequentialBufferSize, FileOptions.SequentialScan))
             {
-                fs.SetLength(PTableHeader.Size + IndexEntry32Size * (long)table.Count + MD5Size); // EXACT SIZE
+                fs.SetLength(PTableHeader.Size + indexEntryFactory.IndexEntrySize * (long)table.Count + MD5Size); // EXACT SIZE
                 fs.Seek(0, SeekOrigin.Begin);
 
                 using (var md5 = MD5.Create())
@@ -39,11 +39,12 @@ namespace EventStore.Core.Index
                     cs.Write(headerBytes, 0, headerBytes.Length);
 
                     // WRITE INDEX ENTRIES
-                    var buffer = new byte[IndexEntry32Size];
+                    var buffer = new byte[indexEntryFactory.IndexEntrySize];
                     foreach (var record in table.IterateAllInOrder())
                     {
                         var rec = record;
-                        AppendRecordTo(bs, rec.Bytes, buffer);
+                        rec.CopyInto(bs, buffer);
+                        //AppendRecordTo(bs, rec.Bytes, buffer);
                     }
                     bs.Flush();
                     cs.FlushFinalBlock();
@@ -54,18 +55,18 @@ namespace EventStore.Core.Index
                 }
             }
             Log.Trace("Dumped MemTable [{0}, {1} entries] in {2}.", table.Id, table.Count, sw.Elapsed);
-            return new PTable(filename, table.Id, version, depth: cacheDepth);
+            return new PTable(filename, table.Id, version, indexEntryFactory, depth: cacheDepth);
         }
 
-        public static PTable MergeTo(IList<PTable> tables, string outputFile, Func<IndexEntry32, bool> recordExistsAt, int version, int cacheDepth = 16)
+        public static PTable MergeTo(IList<PTable> tables, string outputFile, Func<IIndexEntry, bool> recordExistsAt, IndexEntryFactory indexEntryFactory, int version, int cacheDepth = 16)
         {
             Ensure.NotNull(tables, "tables");
             Ensure.NotNullOrEmpty(outputFile, "outputFile");
             Ensure.Nonnegative(cacheDepth, "cacheDepth");
 
-            var fileSize = GetFileSize(tables); // approximate file size
+            var fileSize = GetFileSize(indexEntryFactory, tables); // approximate file size
             if (tables.Count == 2)
-                return MergeTo2(tables, fileSize, outputFile, recordExistsAt, version, cacheDepth); // special case
+                return MergeTo2(tables, fileSize, outputFile, recordExistsAt, indexEntryFactory, version, cacheDepth); // special case
 
             Log.Trace("PTables merge started.");
             var watch = Stopwatch.StartNew();
@@ -96,15 +97,16 @@ namespace EventStore.Core.Index
                     var headerBytes = new PTableHeader((byte)version).AsByteArray();
                     cs.Write(headerBytes, 0, headerBytes.Length);
 
-                    var buffer = new byte[IndexEntry32Size];
+                    var buffer = new byte[indexEntryFactory.IndexEntrySize];
                     // WRITE INDEX ENTRIES
                     while (enumerators.Count > 0)
                     {
-                        var idx = GetMaxOf(enumerators);
+                        var idx = GetMaxOf(indexEntryFactory, enumerators);
                         var current = enumerators[idx].Current;
                         if (recordExistsAt(current))
                         {
-                            AppendRecordTo(bs, current.Bytes, buffer);
+                            current.CopyInto(bs, buffer);
+                            //AppendRecordTo(bs, current.Bytes, buffer);
                             dumpedEntryCount += 1;
                         }
                         if (!enumerators[idx].MoveNext())
@@ -127,11 +129,11 @@ namespace EventStore.Core.Index
             }
             Log.Trace("PTables merge finished in {0} ([{1}] entries merged into {2}).",
                       watch.Elapsed, string.Join(", ", tables.Select(x => x.Count)), dumpedEntryCount);
-            return new PTable(outputFile, Guid.NewGuid(), version, depth: cacheDepth);
+            return new PTable(outputFile, Guid.NewGuid(), version, indexEntryFactory, depth: cacheDepth);
         }
 
         private static PTable MergeTo2(IList<PTable> tables, long fileSize, string outputFile,
-                                       Func<IndexEntry32, bool> recordExistsAt, int version, int cacheDepth)
+                                       Func<IIndexEntry, bool> recordExistsAt, IndexEntryFactory indexEntryFactory, int version, int cacheDepth)
         {
             Log.Trace("PTables merge started (specialized for <= 2 tables).");
             var watch = Stopwatch.StartNew();
@@ -153,12 +155,12 @@ namespace EventStore.Core.Index
                     cs.Write(headerBytes, 0, headerBytes.Length);
 
                     // WRITE INDEX ENTRIES
-                    var buffer = new byte[IndexEntry32Size];
+                    var buffer = new byte[indexEntryFactory.IndexEntrySize];
                     var enum1 = enumerators[0];
                     var enum2 = enumerators[1];
                     bool available1 = enum1.MoveNext();
                     bool available2 = enum2.MoveNext();
-                    IndexEntry32 current;
+                    IIndexEntry current;
                     while (available1 || available2)
                     {
                         if (available1 && (!available2 || enum1.Current.CompareTo(enum2.Current) > 0))
@@ -174,7 +176,8 @@ namespace EventStore.Core.Index
 
                         if (recordExistsAt(current))
                         {
-                            AppendRecordTo(bs, current.Bytes, buffer);
+                            current.CopyInto(bs, buffer);
+                            //AppendRecordTo(bs, current.Bytes, buffer);
                             dumpedEntryCount += 1;
                         }
                     }
@@ -191,23 +194,23 @@ namespace EventStore.Core.Index
             }
             Log.Trace("PTables merge finished in {0} ([{1}] entries merged into {2}).",
                       watch.Elapsed, string.Join(", ", tables.Select(x => x.Count)), dumpedEntryCount);
-            return new PTable(outputFile, Guid.NewGuid(), version, depth: cacheDepth);
+            return new PTable(outputFile, Guid.NewGuid(), version, indexEntryFactory, depth: cacheDepth);
         }
 
-        private static long GetFileSize(IList<PTable> tables)
+        private static long GetFileSize(IndexEntryFactory indexEntryFactory, IList<PTable> tables)
         {
             long count = 0;
             for (int i = 0; i < tables.Count; ++i)
             {
                 count += tables[i].Count;
             }
-            return PTableHeader.Size + IndexEntry32Size * count + MD5Size;
+            return PTableHeader.Size + indexEntryFactory.IndexEntrySize * count + MD5Size;
         }
 
-        private static int GetMaxOf(List<IEnumerator<IndexEntry32>> enumerators)
+        private static int GetMaxOf(IndexEntryFactory indexEntryFactory, List<IEnumerator<IIndexEntry>> enumerators)
         {
             //TODO GFY IF WE LIMIT THIS TO FOUR WE CAN UNROLL THIS LOOP AND WILL BE FASTER
-            var max = new IndexEntry32(ulong.MinValue, long.MinValue);
+            var max = indexEntryFactory.Create(ulong.MinValue, long.MinValue);
             int idx = 0;
             for (int i = 0; i < enumerators.Count; i++)
             {
@@ -221,11 +224,11 @@ namespace EventStore.Core.Index
             return idx;
         }
 
-        private static void AppendRecordTo(Stream stream, byte* bytes, byte[] buffer)
-        {
-            Marshal.Copy((IntPtr)bytes, buffer, 0, IndexEntry32Size);
-            stream.Write(buffer, 0, IndexEntry32Size);
-        }
+        //private static void AppendRecordTo(Stream stream, byte* bytes, byte[] buffer)
+        //{
+        //    Marshal.Copy((IntPtr)bytes, buffer, 0, IndexEntry32Size);
+        //    stream.Write(buffer, 0, IndexEntry32Size);
+        //}
 
 /*
         private static void AppendRecordTo(BinaryWriter writer, IndexEntry indexEntry)

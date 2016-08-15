@@ -109,7 +109,7 @@ namespace EventStore.Core.Index
             return new IndexMap(IndexMapVersion, new List<List<PTable>>(), -1, -1, maxTablesPerLevel);
         }
 
-        public static IndexMap FromFile(string filename, int ptableVersion, int maxTablesPerLevel = 4, bool loadPTables = true, int cacheDepth = 16)
+        public static IndexMap FromFile(string filename, IndexEntryFactory indexEntryFactory, int ptableVersion, int maxTablesPerLevel = 4, bool loadPTables = true, int cacheDepth = 16)
         {
             if (!File.Exists(filename))
                 return CreateEmpty(maxTablesPerLevel);
@@ -131,7 +131,7 @@ namespace EventStore.Core.Index
                     var prepareCheckpoint = checkpoints.PreparePosition;
                     var commitCheckpoint = checkpoints.CommitPosition;
 
-                    var tables = loadPTables ? LoadPTables(reader, filename, checkpoints, ptableVersion, cacheDepth) : new List<List<PTable>>();
+                    var tables = loadPTables ? LoadPTables(reader, filename, indexEntryFactory, checkpoints, ptableVersion, cacheDepth) : new List<List<PTable>>();
 
                     if (!loadPTables && reader.ReadLine() != null)
                         throw new CorruptIndexException(
@@ -209,7 +209,7 @@ namespace EventStore.Core.Index
             }
         }
 
-        private static List<List<PTable>> LoadPTables(StreamReader reader, string indexmapFilename, TFPos checkpoints, int version, int cacheDepth)
+        private static List<List<PTable>> LoadPTables(StreamReader reader, string indexmapFilename, IndexEntryFactory indexEntryFactory, TFPos checkpoints, int version, int cacheDepth)
         {
             var tables = new List<List<PTable>>();
 
@@ -231,7 +231,7 @@ namespace EventStore.Core.Index
                     var path = Path.GetDirectoryName(indexmapFilename);
                     var ptablePath = Path.Combine(path, file);
 
-                    ptable = PTable.FromFile(ptablePath, version, cacheDepth);
+                    ptable = PTable.FromFile(ptablePath, version, indexEntryFactory, cacheDepth);
 
                     CreateIfNeeded(level, tables);
                     tables[level].Insert(position, ptable);
@@ -315,7 +315,8 @@ namespace EventStore.Core.Index
         public MergeResult AddPTable(PTable tableToAdd,
                                      long prepareCheckpoint,
                                      long commitCheckpoint,
-                                     Func<IndexEntry32, bool> recordExistsAt,
+                                     Func<IIndexEntry, bool> recordExistsAt,
+                                     IndexEntryFactory indexEntryFactory,
                                      IIndexFilenameProvider filenameProvider,
                                      int version,
                                      int indexCacheDepth = 16)
@@ -333,7 +334,7 @@ namespace EventStore.Core.Index
                 if (tables[level].Count >= _maxTablesPerLevel)
                 {
                     var filename = filenameProvider.GetFilenameNewTable();
-                    PTable table = PTable.MergeTo(tables[level], filename, recordExistsAt, version, indexCacheDepth);
+                    PTable table = PTable.MergeTo(tables[level], filename, recordExistsAt, indexEntryFactory, version, indexCacheDepth);
                     CreateIfNeeded(level + 1, tables);
                     tables[level + 1].Add(table);
                     toDelete.AddRange(tables[level]);

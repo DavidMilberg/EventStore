@@ -18,7 +18,7 @@ namespace EventStore.Core.Index
         private const int MaxMemoryTables = 1;
 
         private static readonly ILogger Log = LogManager.GetLoggerFor<TableIndex>();
-        internal static readonly IndexEntry32 InvalidIndexEntry = new IndexEntry32(0, -1, -1);
+        internal static readonly IIndexEntry InvalidIndexEntry = new IndexEntry32(0, -1, -1);
 
         public long CommitCheckpoint { get { return Interlocked.Read(ref _commitCheckpoint); } }
         public long PrepareCheckpoint { get { return Interlocked.Read(ref _prepareCheckpoint); } }
@@ -32,6 +32,7 @@ namespace EventStore.Core.Index
         private readonly string _directory;
         private readonly Func<IMemTable> _memTableFactory;
         private readonly Func<TFReaderLease> _tfReaderFactory;
+        private readonly IndexEntryFactory _indexEntryFactory;
         private readonly IIndexFilenameProvider _fileNameProvider;
 
         private readonly object _awaitingTablesLock = new object();
@@ -49,6 +50,7 @@ namespace EventStore.Core.Index
         public TableIndex(string directory,
                           Func<IMemTable> memTableFactory,
                           Func<TFReaderLease> tfReaderFactory,
+                          IndexEntryFactory indexEntryFactory,
                           int ptableVersion,
                           int maxSizeForMemory = 1000000,
                           int maxTablesPerLevel = 4,
@@ -74,6 +76,7 @@ namespace EventStore.Core.Index
             _indexCacheDepth = indexCacheDepth;
             _ptableVersion = ptableVersion;
             _awaitingMemTables = new List<TableItem> { new TableItem(_memTableFactory(), -1, -1) };
+            _indexEntryFactory = indexEntryFactory;
         }
 
         public void Initialize(long chaserCheckpoint)
@@ -101,7 +104,7 @@ namespace EventStore.Core.Index
             // this can happen (very unlikely, though) on master crash
             try
             {
-                _indexMap = IndexMap.FromFile(indexmapFile, _maxTablesPerLevel, cacheDepth: _indexCacheDepth);
+                _indexMap = IndexMap.FromFile(indexmapFile, _indexEntryFactory, _ptableVersion, _maxTablesPerLevel, cacheDepth: _indexCacheDepth);
                 if (_indexMap.CommitCheckpoint >= chaserCheckpoint)
                 {
                     _indexMap.Dispose(TimeSpan.FromMilliseconds(5000));
@@ -114,7 +117,7 @@ namespace EventStore.Core.Index
                 LogIndexMapContent(indexmapFile);
                 DumpAndCopyIndex();
                 File.Delete(indexmapFile);
-                _indexMap = IndexMap.FromFile(indexmapFile, _maxTablesPerLevel, cacheDepth: _indexCacheDepth);
+                _indexMap = IndexMap.FromFile(indexmapFile, _indexEntryFactory, _ptableVersion, _maxTablesPerLevel, cacheDepth: _indexCacheDepth);
             }
             _prepareCheckpoint = _indexMap.PrepareCheckpoint;
             _commitCheckpoint = _indexMap.CommitCheckpoint;
@@ -170,16 +173,16 @@ namespace EventStore.Core.Index
                 Directory.CreateDirectory(directory);
         }
 
-        public void Add(long commitPos, uint stream, int version, long position)
+        public void Add(long commitPos, ulong stream, int version, long position)
         {
             Ensure.Nonnegative(commitPos, "commitPos");
             Ensure.Nonnegative(version, "version");
             Ensure.Nonnegative(position, "position");
 
-            AddEntries(commitPos, new[] { new IndexEntry32(stream, version, position) });
+            AddEntries(commitPos, new[] { _indexEntryFactory.Create(stream, version, position) });
         }
 
-        public void AddEntries(long commitPos, IList<IndexEntry32> entries)
+        public void AddEntries(long commitPos, IList<IIndexEntry> entries)
         {
             //Ensure.Nonnegative(commitPos, "commitPos");
             //Ensure.NotNull(entries, "entries");
@@ -192,10 +195,10 @@ namespace EventStore.Core.Index
 
             if (table.Count >= _maxSizeForMemory)
             {
-                long prepareCheckpoint = entries[0].Position;
+                long prepareCheckpoint = entries[0].GetPosition();
                 for (int i = 1, n = entries.Count; i < n; ++i)
                 {
-                    prepareCheckpoint = Math.Max(prepareCheckpoint, entries[i].Position);
+                    prepareCheckpoint = Math.Max(prepareCheckpoint, entries[i].GetPosition());
                 }
 
                 lock (_awaitingTablesLock)
@@ -246,7 +249,7 @@ namespace EventStore.Core.Index
                     if (memtable != null)
                     {
                         memtable.MarkForConversion();
-                        ptable = PTable.FromMemtable(memtable, _fileNameProvider.GetFilenameNewTable(), _ptableVersion, _indexCacheDepth);
+                        ptable = PTable.FromMemtable(memtable, _indexEntryFactory, _fileNameProvider.GetFilenameNewTable(), _ptableVersion, _indexCacheDepth);
                     }
                     else
                         ptable = (PTable)tableItem.Table;
@@ -257,7 +260,7 @@ namespace EventStore.Core.Index
                     using (var reader = _tfReaderFactory())
                     {
                         mergeResult = _indexMap.AddPTable(ptable, tableItem.PrepareCheckpoint, tableItem.CommitCheckpoint,
-                                                          entry => reader.ExistsAt(entry.Position), _fileNameProvider, _ptableVersion, _indexCacheDepth);
+                                                          entry => reader.ExistsAt(entry.GetPosition()), _indexEntryFactory, _fileNameProvider, _ptableVersion, _indexCacheDepth);
                     }
                     _indexMap = mergeResult.MergedMap;
                     _indexMap.SaveToFile(indexmapFile);
@@ -303,7 +306,7 @@ namespace EventStore.Core.Index
 
                 Log.Trace("Putting awaiting file as PTable instead of MemTable [{0}].", memtable.Id);
 
-                var ptable = PTable.FromMemtable(memtable, _fileNameProvider.GetFilenameNewTable(), _ptableVersion, _indexCacheDepth);
+                var ptable = PTable.FromMemtable(memtable, _indexEntryFactory, _fileNameProvider.GetFilenameNewTable(), _ptableVersion, _indexCacheDepth);
                 var swapped = false;
                 lock (_awaitingTablesLock)
                 {
@@ -324,7 +327,7 @@ namespace EventStore.Core.Index
             }
         }
 
-        public bool TryGetOneValue(uint stream, int version, out long position)
+        public bool TryGetOneValue(ulong stream, int version, out long position)
         {
             int counter = 0;
             while (counter < 5)
@@ -342,7 +345,7 @@ namespace EventStore.Core.Index
             throw new InvalidOperationException("Files are locked.");
         }
 
-        private bool TryGetOneValueInternal(uint stream, int version, out long position)
+        private bool TryGetOneValueInternal(ulong stream, int version, out long position)
         {
             if (version < 0)
                 throw new ArgumentOutOfRangeException("version");
@@ -365,7 +368,7 @@ namespace EventStore.Core.Index
             return false;
         }
 
-        public bool TryGetLatestEntry(uint stream, out IndexEntry32 entry)
+        public bool TryGetLatestEntry(ulong stream, out IIndexEntry entry)
         {
             var counter = 0;
             while (counter < 5)
@@ -383,7 +386,7 @@ namespace EventStore.Core.Index
             throw new InvalidOperationException("Files are locked.");
         }
 
-        private bool TryGetLatestEntryInternal(uint stream, out IndexEntry32 entry)
+        private bool TryGetLatestEntryInternal(ulong stream, out IIndexEntry entry)
         {
             var awaiting = _awaitingMemTables;
             foreach (var t in awaiting)
@@ -403,7 +406,7 @@ namespace EventStore.Core.Index
             return false;
         }
 
-        public bool TryGetOldestEntry(uint stream, out IndexEntry32 entry)
+        public bool TryGetOldestEntry(ulong stream, out IIndexEntry entry)
         {
             var counter = 0;
             while (counter < 5)
@@ -421,7 +424,7 @@ namespace EventStore.Core.Index
             throw new InvalidOperationException("Files are locked.");
         }
 
-        private bool TryGetOldestEntryInternal(uint stream, out IndexEntry32 entry)
+        private bool TryGetOldestEntryInternal(ulong stream, out IIndexEntry entry)
         {
             var map = _indexMap;
             foreach (var table in map.InReverseOrder())
@@ -441,7 +444,7 @@ namespace EventStore.Core.Index
             return false;
         }
 
-        public IEnumerable<IndexEntry32> GetRange(uint stream, int startVersion, int endVersion, int? limit = null)
+        public IEnumerable<IIndexEntry> GetRange(ulong stream, int startVersion, int endVersion, int? limit = null)
         {
             var counter = 0;
             while (counter < 5)
@@ -459,14 +462,14 @@ namespace EventStore.Core.Index
             throw new InvalidOperationException("Files are locked.");
         }
 
-        private IEnumerable<IndexEntry32> GetRangeInternal(uint stream, int startVersion, int endVersion, int? limit = null)
+        private IEnumerable<IIndexEntry> GetRangeInternal(ulong stream, int startVersion, int endVersion, int? limit = null)
         {
             if (startVersion < 0)
                 throw new ArgumentOutOfRangeException("startVersion");
             if (endVersion < 0)
                 throw new ArgumentOutOfRangeException("endVersion");
 
-            var candidates = new List<IEnumerator<IndexEntry32>>();
+            var candidates = new List<IEnumerator<IIndexEntry>>();
 
             var awaiting = _awaitingMemTables;
             for (int index = 0; index < awaiting.Count; index++)
@@ -484,15 +487,15 @@ namespace EventStore.Core.Index
                     candidates.Add(range);
             }
 
-            var last = new IndexEntry32(0, 0, 0);
+            var last = _indexEntryFactory.Create(0, 0, 0);
             var first = true;
             while (candidates.Count > 0)
             {
-                var maxIdx = GetMaxOf(candidates);
+                var maxIdx = GetMaxOf(_indexEntryFactory, candidates);
                 var winner = candidates[maxIdx];
 
                 var best = winner.Current;
-                if (first || last.Key != best.Key || last.Position != best.Position)
+                if (first || last.GetKey() != best.GetKey() || last.GetPosition() != best.GetPosition())
                 {
                     last = best;
                     yield return best;
@@ -504,9 +507,9 @@ namespace EventStore.Core.Index
             }
         }
 
-        private static int GetMaxOf(List<IEnumerator<IndexEntry32>> enumerators)
+        private static int GetMaxOf(IndexEntryFactory factory, List<IEnumerator<IIndexEntry>> enumerators)
         {
-            var max = new IndexEntry32(ulong.MinValue, long.MinValue);
+            var max = factory.Create(ulong.MinValue, long.MinValue);
             int idx = 0;
             for (int i = 0; i < enumerators.Count; i++)
             {

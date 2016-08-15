@@ -150,6 +150,7 @@
     <Compile Include="Index\IMemTable.cs" />
     <Compile Include="Index\IndexEntry32.cs" />
     <Compile Include="Index\IndexEntry64.cs" />
+    <Compile Include="Index\IndexEntryFactory.cs" />
     <Compile Include="Index\IndexMap.cs" />
     <Compile Include="Index\ISearchTable.cs" />
     <Compile Include="Index\ITableIndex.cs" />

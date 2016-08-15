@@ -153,7 +153,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 
             string streamId = null;
             uint streamHash = 0;
-            var indexEntries = new List<IndexEntry32>();
+            var indexEntries = new List<IIndexEntry>();
             var prepares = new List<PrepareLogRecord>();
 
             foreach (var prepare in GetTransactionPrepares(commit.TransactionPosition, commit.LogPosition))
@@ -186,7 +186,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             {
                 if (_additionalCommitChecks)
                 {
-                    CheckStreamVersion(streamId, indexEntries[0].Version, commit);
+                    CheckStreamVersion(streamId, indexEntries[0].GetVersion(), commit);
                     CheckDuplicateEvents(streamHash, commit, indexEntries, prepares);
                 }
                 _tableIndex.AddEntries(commit.LogPosition, indexEntries); // atomically add a whole bulk of entries
@@ -213,7 +213,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
                 _bus.Publish(
                     new StorageMessage.EventCommitted(
                         commit.LogPosition,
-                        new EventRecord(indexEntries[i].Version, prepares[i]),
+                        new EventRecord(indexEntries[i].GetVersion(), prepares[i]),
                         isTfEof && i == n - 1));
             }
 
@@ -232,7 +232,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 
             string streamId = lastPrepare.EventStreamId;
             uint streamHash = _hasher.Hash(streamId);
-            var indexEntries = new List<IndexEntry32>();
+            var indexEntries = new List<IIndexEntry>();
             var prepares = new List<PrepareLogRecord>();
 
             foreach (var prepare in commitedPrepares)
@@ -282,7 +282,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             {
                 if (_additionalCommitChecks)
                 {
-                    CheckStreamVersion(streamId, indexEntries[0].Version, null); // TODO AN: bad passing null commit
+                    CheckStreamVersion(streamId, indexEntries[0].GetVersion(), null); // TODO AN: bad passing null commit
                     CheckDuplicateEvents(streamHash, null, indexEntries, prepares); // TODO AN: bad passing null commit
                 }
                 _tableIndex.AddEntries(lastPrepare.LogPosition, indexEntries); // atomically add a whole bulk of entries
@@ -309,7 +309,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
                 _bus.Publish(
                     new StorageMessage.EventCommitted(
                         prepares[i].LogPosition,
-                        new EventRecord(indexEntries[i].Version, prepares[i]),
+                        new EventRecord(indexEntries[i].GetVersion(), prepares[i]),
                         isTfEof && i == n - 1));
             }
 
@@ -357,15 +357,15 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
             }
         }
 
-        private void CheckDuplicateEvents(uint streamHash, CommitLogRecord commit, IList<IndexEntry32> indexEntries, IList<PrepareLogRecord> prepares)
+        private void CheckDuplicateEvents(uint streamHash, CommitLogRecord commit, IList<IIndexEntry> indexEntries, IList<PrepareLogRecord> prepares)
         {
             using (var reader = _backend.BorrowReader())
             {
-                var entries = _tableIndex.GetRange(streamHash, indexEntries[0].Version, indexEntries[indexEntries.Count - 1].Version);
+                var entries = _tableIndex.GetRange(streamHash, indexEntries[0].GetVersion(), indexEntries[indexEntries.Count - 1].GetVersion());
                 foreach (var indexEntry in entries)
                 {
-                    var prepare = prepares[indexEntry.Version - indexEntries[0].Version];
-                    PrepareLogRecord indexedPrepare = GetPrepare(reader, indexEntry.Position);
+                    var prepare = prepares[indexEntry.GetVersion() - indexEntries[0].GetVersion()];
+                    PrepareLogRecord indexedPrepare = GetPrepare(reader, indexEntry.GetPosition());
                     if (indexedPrepare != null && indexedPrepare.EventStreamId == prepare.EventStreamId)
                     {
                         if (Debugger.IsAttached)
@@ -374,7 +374,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
                             throw new Exception(
                                     string.Format("Trying to add duplicate event #{0} to stream {1} (hash {2})\nCommit: {3}\n"
                                                   + "Prepare: {4}\nIndexed prepare: {5}.",
-                                                  indexEntry.Version, prepare.EventStreamId, streamHash, commit, prepare, indexedPrepare));
+                                                  indexEntry.GetVersion(), prepare.EventStreamId, streamHash, commit, prepare, indexedPrepare));
                     }
                 }
             }
